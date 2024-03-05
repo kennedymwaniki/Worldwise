@@ -18,7 +18,7 @@ function Map() {
 
   const {
     isLoading: isLoadingPosition,
-    position: getLocationPosition,
+    position: geoLocationPosition,
     getPosition,
   } = useGeolocation();
 
@@ -40,17 +40,19 @@ function Map() {
   // the current loaction is loaded and the entire component is re-rendered and the map goes to wher you are loacated
   useEffect(
     function () {
-      if (getLocationPosition)
-        setMapPosition([getLocationPosition.lat, getLocationPosition.lng]);
+      if (geoLocationPosition)
+        setMapPosition([geoLocationPosition.lat, geoLocationPosition.lng]);
     },
-    [getLocationPosition]
+    [geoLocationPosition]
   );
 
   return (
     <div className={styles.mapContainer}>
-      <Button type="position" onClick={getPosition}>
-        {isLoadingPosition ? "Loading..." : "Use Your Current position"}
-      </Button>
+      {!geoLocationPosition && (
+        <Button type="position" onClick={getPosition}>
+          {isLoadingPosition ? "Loading..." : "Use Your Current position"}
+        </Button>
+      )}
       <MapContainer
         center={mapPosition}
         // center={[mapLng, mapLat]}
