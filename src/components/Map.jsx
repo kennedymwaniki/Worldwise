@@ -1,33 +1,29 @@
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   MapContainer,
+  TileLayer,
   Marker,
   Popup,
-  TileLayer,
   useMap,
-  useMapEvent,
+  useMapEvents,
 } from "react-leaflet";
+
 import styles from "./Map.module.css";
 import { useEffect, useState } from "react";
 import { useCities } from "../contexts/CitiesContext";
-import { useGeolocation } from "../Hooks/useGeolocation";
+import { useGeolocation } from "../hooks/useGeolocation";
+import { useUrlPosition } from "../hooks/useUrlPosition";
 import Button from "./Button";
 
 function Map() {
   const { cities } = useCities();
-
+  const [mapPosition, setMapPosition] = useState([40, 0]);
   const {
     isLoading: isLoadingPosition,
-    position: geoLocationPosition,
+    position: geolocationPosition,
     getPosition,
   } = useGeolocation();
-
-  const [mapPosition, setMapPosition] = useState([40, 0]);
-
-  const [searchParams] = useSearchParams();
-  const mapLat = searchParams.get("lat");
-  const mapLng = searchParams.get("lng");
-  console.log(mapLat, mapLng);
+  const [mapLat, mapLng] = useUrlPosition();
 
   useEffect(
     function () {
@@ -36,27 +32,25 @@ function Map() {
     [mapLat, mapLng]
   );
 
-  //initially the geolocationPosition is null and the effect below will not render
-  // the current loaction is loaded and the entire component is re-rendered and the map goes to wher you are loacated
   useEffect(
     function () {
-      if (geoLocationPosition)
-        setMapPosition([geoLocationPosition.lat, geoLocationPosition.lng]);
+      if (geolocationPosition)
+        setMapPosition([geolocationPosition.lat, geolocationPosition.lng]);
     },
-    [geoLocationPosition]
+    [geolocationPosition]
   );
 
   return (
     <div className={styles.mapContainer}>
-      {!geoLocationPosition && (
+      {!geolocationPosition && (
         <Button type="position" onClick={getPosition}>
-          {isLoadingPosition ? "Loading..." : "Use Your Current position"}
+          {isLoadingPosition ? "Loading..." : "Use your position"}
         </Button>
       )}
+
       <MapContainer
         center={mapPosition}
-        // center={[mapLng, mapLat]}
-        zoom={13}
+        zoom={6}
         scrollWheelZoom={true}
         className={styles.map}
       >
@@ -64,26 +58,25 @@ function Map() {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png"
         />
-
         {cities.map((city) => (
           <Marker
             position={[city.position.lat, city.position.lng]}
             key={city.id}
           >
             <Popup>
-              <span>{city.emoji}</span>
-              <span>{city.cityName}</span>
+              <span>{city.emoji}</span> <span>{city.cityName}</span>
             </Popup>
           </Marker>
         ))}
-        <ChangeComponent position={mapPosition} />
+
+        <ChangeCenter position={mapPosition} />
         <DetectClick />
       </MapContainer>
     </div>
   );
 }
-// making the coontainer popup responsive to returning where it is selected
-function ChangeComponent({ position }) {
+
+function ChangeCenter({ position }) {
   const map = useMap();
   map.setView(position);
   return null;
@@ -92,11 +85,9 @@ function ChangeComponent({ position }) {
 function DetectClick() {
   const navigate = useNavigate();
 
-  useMapEvent({
-    click: (e) => {
-      console.log(e);
-      navigate(`form?lat=${e.latlng.lat}&lng=${e.latlng.lng}`);
-    },
+  useMapEvents({
+    click: (e) => navigate(`form?lat=${e.latlng.lat}&lng=${e.latlng.lng}`),
   });
 }
+
 export default Map;
